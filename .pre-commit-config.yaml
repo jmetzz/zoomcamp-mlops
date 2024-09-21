@@ -22,7 +22,14 @@ repos:
     hooks:
       - id: pytest
         name: Run pytest
-        entry: sh -c 'if ls tests/*.py >/dev/null 2>&1; then poetry run pytest -m "not nondeterministic"; else echo "No test files found. Skipping pytest."; fi'
+        entry: |
+          sh -c '
+          if ls tests/*.py >/dev/null 2>&1; then
+            poetry run pytest -m "not nondeterministic";
+          else
+            echo "No test files found. Skipping pytest.";
+          fi
+          '
         language: system
         types: [python]
         pass_filenames: false
