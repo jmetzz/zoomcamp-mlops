@@ -2,15 +2,15 @@
 .EXPORT_ALL_VARIABLES:
 SHELL := /bin/bash -euo pipefail
 
-BLACK ?= \033[0;30m
-RED ?= \033[0;31m
-GREEN ?= \033[0;32m
-YELLOW ?= \033[0;33m
-BLUE ?= \033[0;34m
-PURPLE ?= \033[0;35m
-CYAN ?= \033[0;36m
-GRAY ?= \033[0;37m
-COFF ?= \033[0m
+BLACK ?= [0;30m
+RED ?= [0;31m
+GREEN ?= [0;32m
+YELLOW ?= [0;33m
+BLUE ?= [0;34m
+PURPLE ?= [0;35m
+CYAN ?= [0;36m
+GRAY ?= [0;37m
+COFF ?= [0m
 
 
 initialize:
@@ -24,36 +24,38 @@ endif
 
 deps: initialize ## Install dependencies, including dev & test dependencies
 	@printf "$(CYAN)>>> Creating environment for project...$(COFF)\n"
-	poetry install --no-root --without profiling --sync
-	poetry run pre-commit install
-	# poetry run pre-commit install --hook-type pre-push
+	uv sync --all-groups
+	uv run pre-commit install
+	# uv run pre-commit install --hook-type pre-push
+
 
 test: ## Run unit tests
 	@printf "$(CYAN)Running test suite$(COFF)\n"
-	export PYTHONPATH="./src" && poetry run pytest -m "not nondeterministic" --cov=src
+	export PYTHONPATH="./src" && uv run pytest -m "not nondeterministic" --cov=src
+
 
 test-flaky: ## Run non-deterministic unit tests
 	@printf "$(CYAN)Running test suite$(COFF)\n"
-	export PYTHONPATH="./src" && poetry run pytest -m "nondeterministic"
+	export PYTHONPATH="./src" && uv run pytest -m "nondeterministic"
 
 check: ## Run static code checkers and linters
 	@printf "$(CYAN)Running static code analysis and license generation$(COFF)\n"
-	poetry run ruff check src tests
+	uv run ruff check src tests
 	@printf "All $(GREEN)done$(COFF)\n"
 
 lint: ## Runs ruff formatter
 	@printf "$(CYAN)Auto-formatting with ruff$(COFF)\n"
-	poetry run ruff format src tests notebooks
-	poetry run ruff check src tests --fix
+	uv run ruff format src tests notebooks
+	uv run ruff check src tests --fix
 
 precommit: ## Runs all pre-commit hooks
 	@printf "$(CYAN)Running pre-commit hooks$(COFF)\n"
-	poetry run pre-commit run --all-files
+	uv run pre-commit run --all-files
 	@printf "All $(GREEN)done$(COFF)\n"
 
 license: ## Generated the licenses.md file based on the project's dependencies
 	@printf " >>> Generating $(CYAN)licenses.md$(COFF) file\n"
-	poetry run pip-licenses --with-authors -f markdown --output-file ./licenses.md
+	uv run pip-licenses --with-authors -f markdown --output-file ./licenses.md
 
 clean: ## Removed the build, dist directories, pycache, pyo or pyc and swap files
 	@printf "$(CYAN)Cleaning EVERYTHING!$(COFF)\n"
@@ -72,6 +74,7 @@ all: clean lint test license ## Runs clean, lint, test and license targets
 bastion: ## Connect to the dev db with a port FWD (Broadcasts on local 12.0.0.1:5432)
 	@printf "$(GREEN)Postgres will be listening on 127.0.0.1:5432$(COFF)\n"
 	gcloud compute ssh test-connectivity-vm --project "$(GCP_PROJECT)"  --zone "$(GCP_ZONE)" --ssh-flag="-L 127.0.0.1:$(DB_PORT):$(TARGET_HOST_NAME):$(DB_PORT) -Nv"
+
 
 
 to_s3: ## Upload Data to S3
